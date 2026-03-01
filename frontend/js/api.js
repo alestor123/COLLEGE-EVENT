@@ -30,10 +30,15 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
   try { data = await res.json(); } catch { data = {}; }
 
   if (!res.ok) {
-    const msg = data?.detail?.message || data?.detail || JSON.stringify(data) || 'Request failed';
+    const detail = data?.detail;
+    let msg = 'Request failed';
+    if (typeof detail === 'string') msg = detail;
+    else if (detail?.message) msg = detail.message;
+    else if (Array.isArray(detail)) msg = detail.map(d => d.msg || d.message || JSON.stringify(d)).join('; ');
+    else if (detail) msg = JSON.stringify(detail);
     const err = new Error(msg);
     err.status = res.status;
-    err.code = data?.detail?.code || 'API_ERROR';
+    err.code = detail?.code || 'API_ERROR';
     throw err;
   }
   return data;

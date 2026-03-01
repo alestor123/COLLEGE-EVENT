@@ -47,7 +47,7 @@ export function categoryChip(cat) {
 export function seatChip(available, total) {
     const cls = available === 0 ? 'chip-danger' : available <= total * 0.2 ? 'chip-warning' : 'chip-success';
     const label = available === 0 ? 'Full' : `${available} / ${total} seats`;
-    return `<span class="chip ${cls}">🪑 ${label}</span>`;
+    return `<span class="chip ${cls}">${label}</span>`;
 }
 
 // ─── Build event card HTML ───────────────────────────────────────
@@ -64,9 +64,9 @@ export function buildEventCard(ev, registeredIds = new Set()) {
         ${isReg ? '<span class="chip chip-accent">✓ Registered</span>' : ''}
       </div>
       <div class="event-title">${ev.title}</div>
-      ${ev.clubs ? `<div class="text-muted">🏫 ${ev.clubs.name}</div>` : ''}
+      ${ev.clubs ? `<div class="text-muted" style="font-size:0.82rem">🏫 ${ev.clubs.name}</div>` : ''}
       <div class="event-desc">${ev.description || 'No description provided.'}</div>
-      <div class="flex gap-1 items-center mt-1">
+      <div class="flex gap-1 items-center mt-1" style="font-size:0.82rem">
         <span class="text-muted">📅 ${formatDate(ev.event_date)}</span>
         ${ev.venue ? `<span class="text-muted" style="margin-left:auto">📍 ${ev.venue}</span>` : ''}
       </div>
@@ -84,13 +84,17 @@ export function updateNav() {
     const navAuth = document.getElementById('nav-auth');
     if (!navAuth) return;
     if (isLoggedIn() && u) {
+        const dashLink = isAdmin() ? '/admin-dashboard.html' : '/events.html';
+        const dashLabel = isAdmin() ? '⚙️ Dashboard' : '📋 Events';
         navAuth.innerHTML = `
-      <a href="${isAdmin() ? '/admin-dashboard.html' : '/student-dashboard.html'}">${isAdmin() ? '⚙️ Admin' : '👤 Dashboard'}</a>
+      ${isAdmin() ? '<a href="/create-event.html" class="btn btn-primary btn-sm">+ Create Event</a>' : ''}
+      <a href="${dashLink}">${dashLabel}</a>
+      <a href="/profile.html">👤 Profile</a>
       <button onclick="handleLogout()">Logout</button>`;
     } else {
         navAuth.innerHTML = `
-      <a href="/login.html">Login</a>
-      <a href="/register.html" class="btn btn-primary btn-sm">Register</a>`;
+      <button onclick="openModal('login-modal')">Login</button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('signup-modal')">Sign Up</button>`;
     }
 }
 
@@ -98,3 +102,82 @@ window.handleLogout = function () {
     clearAuth();
     window.location.href = '/';
 };
+
+// ─── Modal helpers ──────────────────────────────────────────────
+window.openModal = function (id) {
+    document.getElementById(id)?.classList.add('open');
+};
+
+window.closeModal = function (id) {
+    document.getElementById(id)?.classList.remove('open');
+};
+
+// ─── Password visibility toggle ────────────────────────────────
+window.togglePassword = function (inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+    } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+    }
+};
+
+// ─── Calendar renderer ─────────────────────────────────────────
+export function renderCalendar(container, year, month, eventDates, onDayClick) {
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startWeekday = firstDay.getDay();
+    const totalDays = lastDay.getDate();
+    const today = new Date();
+
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+
+    // Build set of dates with events for quick lookup
+    const eventDaySet = new Set();
+    const eventsByDay = {};
+    (eventDates || []).forEach(ev => {
+        const d = new Date(ev.event_date);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+            const day = d.getDate();
+            eventDaySet.add(day);
+            if (!eventsByDay[day]) eventsByDay[day] = [];
+            eventsByDay[day].push(ev);
+        }
+    });
+
+    let html = `
+    <div class="calendar-header">
+      <button class="calendar-nav" onclick="calendarNav(-1)">‹</button>
+      <h4>${monthNames[month]} ${year}</h4>
+      <button class="calendar-nav" onclick="calendarNav(1)">›</button>
+    </div>
+    <div class="calendar-grid">
+      ${'Sun Mon Tue Wed Thu Fri Sat'.split(' ').map(d => `<div class="calendar-day-header">${d}</div>`).join('')}
+    `;
+
+    // Empty cells before first day
+    for (let i = 0; i < startWeekday; i++) html += '<div class="calendar-day other-month"></div>';
+
+    for (let day = 1; day <= totalDays; day++) {
+        const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+        const hasEvent = eventDaySet.has(day);
+        const classes = ['calendar-day'];
+        if (isToday) classes.push('today');
+        if (hasEvent) classes.push('has-event');
+
+        const clickAttr = hasEvent ? `onclick="calendarDayClick(${day})"` : '';
+        html += `<div class="${classes.join(' ')}" ${clickAttr}>${day}</div>`;
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Expose day click handler to window
+    window._calendarEventsByDay = eventsByDay;
+    window.calendarDayClick = (day) => {
+        if (onDayClick && eventsByDay[day]) onDayClick(day, eventsByDay[day]);
+    };
+}

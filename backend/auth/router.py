@@ -12,7 +12,8 @@ def register(body: RegisterRequest):
         email=body.email,
         password=body.password,
         full_name=body.full_name,
-        role=body.role,
+        branch=body.branch,
+        semester=body.semester,
     )
     token = service.create_access_token(user["id"], user["role"])
     safe_user = {k: v for k, v in user.items() if k != "password_hash"}

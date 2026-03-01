@@ -30,15 +30,15 @@ app.include_router(events_router)
 app.include_router(clubs_router)
 app.include_router(registrations_router)
 
+@app.get("/health", tags=["Health"])
+def health():
+    return {"status": "ok"}
+
+
 # Serve the static frontend from /frontend relative to this file's parent
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
 if os.path.isdir(FRONTEND_DIR):
     app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
-
-
-@app.get("/health", tags=["Health"])
-def health():
-    return {"status": "ok"}
 
 
 @app.exception_handler(Exception)

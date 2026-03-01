@@ -9,68 +9,9 @@
 </head>
 
 <body>
-    <nav>
-        <div class="container nav-inner">
-            <a href="/" class="nav-logo">⚡ EventHub</a>
-            <div class="nav-links">
-                <a href="/">← Browse Events</a>
-            </div>
-        </div>
-    </nav>
-
-    <div class="auth-wrap">
-        <div class="auth-card">
-            <h2>Welcome back</h2>
-            <p class="subtitle">Sign in to register for events and access your dashboard.</p>
-
-            <form id="login-form" class="auth-stack">
-                <div class="form-group">
-                    <label for="email">Email address</label>
-                    <input class="form-control" id="email" type="email" placeholder="you@college.edu" required />
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input class="form-control" id="password" type="password" placeholder="••••••••" required />
-                </div>
-                <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Sign In</button>
-            </form>
-
-            <p class="text-muted mt-3" style="text-align:center">
-                Don't have an account? <a href="/register.html" style="color:var(--accent-2)">Register here</a>
-            </p>
-        </div>
-    </div>
-
-    <div id="toast-container"></div>
-    <script type="module">
-        import { authAPI, setAuth, isLoggedIn, isAdmin } from '/js/api.js';
-        import { toast } from '/js/ui.js';
-
-        if (isLoggedIn()) {
-            window.location.href = isAdmin() ? '/admin-dashboard.html' : '/student-dashboard.html';
-        }
-
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Signing in…';
-            try {
-                const { access_token, user } = await authAPI.login({
-                    email: document.getElementById('email').value,
-                    password: document.getElementById('password').value,
-                });
-                setAuth(access_token, user);
-                toast('Login successful! Redirecting…', 'success');
-                setTimeout(() => {
-                    window.location.href = user.role === 'admin' ? '/admin-dashboard.html' : '/student-dashboard.html';
-                }, 600);
-            } catch (err) {
-                toast(err.message, 'error');
-                btn.disabled = false;
-                btn.textContent = 'Sign In';
-            }
-        });
+    <script>
+        // Auth is handled via modals on the homepage
+        window.location.href = '/';
     </script>
 </body>
 

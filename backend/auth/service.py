@@ -19,7 +19,8 @@ def create_access_token(user_id: str, role: str) -> str:
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
 
-def register_user(email: str, password: str, full_name: str, role: str) -> dict:
+def register_user(email: str, password: str, full_name: str, branch: str, semester: int) -> dict:
+    """Register a new student user. Admins are pre-seeded and cannot self-register."""
     supabase = get_supabase()
     existing = supabase.table("users").select("id").eq("email", email).execute()
     if existing.data:
@@ -29,7 +30,14 @@ def register_user(email: str, password: str, full_name: str, role: str) -> dict:
         )
     hashed = hash_password(password)
     result = supabase.table("users").insert(
-        {"email": email, "password_hash": hashed, "full_name": full_name, "role": role}
+        {
+            "email": email,
+            "password_hash": hashed,
+            "full_name": full_name,
+            "role": "student",
+            "branch": branch,
+            "semester": semester,
+        }
     ).execute()
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to create user")

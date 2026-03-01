@@ -32,10 +32,10 @@ uv sync
 
 # Start the backend (serves frontend too)
 cd backend
-uv run uvicorn main:app --reload --port 8000
+uv run uvicorn main:app --reload --port 3000
 ```
 
-Open **http://localhost:8000** in your browser.
+Open **http://localhost:3000** in your browser.
 
 ---
 
@@ -125,5 +125,5 @@ Seat booking uses an atomic PostgreSQL stored procedure (`book_event_seat`) with
 ## Docs
 
 FastAPI auto-docs available at:
-- **Swagger**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- **Swagger**: http://localhost:3000/docs
+- **ReDoc**: http://localhost:3000/redoc

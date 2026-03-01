@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   full_name     TEXT NOT NULL,
   role          user_role NOT NULL DEFAULT 'student',
+  branch        TEXT,
+  semester      INT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -170,18 +172,18 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- =============================================================
--- SAMPLE SEED DATA (optional — comment out if not needed)
+-- SAMPLE SEED DATA
 -- =============================================================
 -- Passwords below are bcrypt hashes of "password123"
-INSERT INTO users (id, email, password_hash, full_name, role) VALUES
-  ('a0000000-0000-0000-0000-000000000001', 'admin1@college.edu',
-   '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'Alice Admin', 'admin'),
+INSERT INTO users (id, email, password_hash, full_name, role, branch, semester) VALUES
+  ('a0000000-0000-0000-0000-000000000001', 'admin@college.edu',
+   '$2b$12$OHlxq880nFSSvK0GxHWabefvTkkHF.VWu9lSQyfO6aOprVj2yz07O', 'Admin User', 'admin', NULL, NULL),
   ('a0000000-0000-0000-0000-000000000002', 'admin2@college.edu',
-   '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'Bob Admin', 'admin'),
+   '$2b$12$OHlxq880nFSSvK0GxHWabefvTkkHF.VWu9lSQyfO6aOprVj2yz07O', 'Bob Admin', 'admin', NULL, NULL),
   ('a0000000-0000-0000-0000-000000000003', 'student1@college.edu',
-   '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'Charlie Student', 'student'),
+   '$2b$12$OHlxq880nFSSvK0GxHWabefvTkkHF.VWu9lSQyfO6aOprVj2yz07O', 'Charlie Student', 'student', 'Computer Science', 4),
   ('a0000000-0000-0000-0000-000000000004', 'student2@college.edu',
-   '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'Diana Student', 'student')
+   '$2b$12$OHlxq880nFSSvK0GxHWabefvTkkHF.VWu9lSQyfO6aOprVj2yz07O', 'Diana Student', 'student', 'Electronics', 6)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO clubs (id, name, description, admin_id) VALUES

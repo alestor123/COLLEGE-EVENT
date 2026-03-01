@@ -21,16 +21,15 @@
             <a href="/admin-dashboard.html" class="btn btn-secondary btn-sm mb-3" style="display:inline-flex">←
                 Dashboard</a>
             <div class="card">
-                <h2 id="form-title" style="margin-bottom:0.35rem">Create New Event</h2>
-                <p class="text-muted mb-3" id="form-sub">Fill in the details below to publish a new event for your club.
-                </p>
+                <h2 id="form-title" style="margin-bottom:0.3rem">Create New Event</h2>
+                <p class="text-muted mb-3" id="form-sub">Fill in the details to publish a new event for your club.</p>
 
-                <form id="event-form" class="modal-stack" style="gap:1.1rem">
+                <form id="event-form" class="modal-stack" style="gap:1rem">
                     <div class="form-group">
                         <label>Event Title *</label>
                         <input class="form-control" id="title" placeholder="e.g. Hackathon 2026" required />
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem">
                         <div class="form-group">
                             <label>Category *</label>
                             <select class="form-control" id="category">
@@ -58,7 +57,7 @@
                         <textarea class="form-control" id="description" rows="4"
                             placeholder="Describe the event…"></textarea>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem">
                         <div class="form-group">
                             <label>Date & Time *</label>
                             <input type="datetime-local" class="form-control" id="event_date" required />
@@ -72,7 +71,7 @@
                         <label>Total Seats *</label>
                         <input type="number" class="form-control" id="total_seats" min="1" placeholder="50" required />
                     </div>
-                    <div style="display:flex;gap:1rem;align-items:center">
+                    <div class="flex gap-1 items-center">
                         <button class="btn btn-primary" type="submit" id="submit-btn">Publish Event</button>
                         <a href="/admin-dashboard.html" class="btn btn-secondary">Cancel</a>
                     </div>
@@ -87,7 +86,7 @@
         import { updateNav, toast } from '/js/ui.js';
 
         updateNav();
-        if (!isLoggedIn()) { window.location.href = '/login.html'; return; }
+        if (!isLoggedIn()) { window.location.href = '/'; return; }
         if (!isAdmin()) { window.location.href = '/'; return; }
 
         const user = getUser();
@@ -96,20 +95,18 @@
         let existingEvent = null;
 
         async function init() {
-            // Load clubs for this admin
             try {
                 const clubs = await clubsAPI.list();
                 const myClubs = clubs.filter(c => c.admin_id === user.id);
                 const sel = document.getElementById('club_id');
                 if (!myClubs.length) {
-                    sel.innerHTML = '<option value="">No clubs — create one in dashboard first</option>';
+                    sel.innerHTML = '<option value="">No clubs — create one first</option>';
                 } else {
                     sel.innerHTML = myClubs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
                 }
             } catch { }
 
             if (editId) {
-                // Edit mode
                 document.getElementById('form-title').textContent = 'Edit Event';
                 document.getElementById('form-sub').textContent = 'Update the event details.';
                 document.getElementById('submit-btn').textContent = 'Save Changes';
@@ -121,7 +118,6 @@
                     document.getElementById('venue').value = existingEvent.venue || '';
                     document.getElementById('total_seats').value = existingEvent.total_seats;
                     document.getElementById('club_id').value = existingEvent.club_id;
-                    // Format date for datetime-local input
                     const d = new Date(existingEvent.event_date);
                     document.getElementById('event_date').value = d.toISOString().slice(0, 16);
                 } catch (e) {
@@ -134,7 +130,7 @@
             e.preventDefault();
             const btn = document.getElementById('submit-btn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Saving…';
+            btn.innerHTML = '<span class="spinner spinner-dark"></span> Saving…';
 
             const body = {
                 title: document.getElementById('title').value.trim(),

@@ -9,87 +9,9 @@
 </head>
 
 <body>
-    <nav>
-        <div class="container nav-inner">
-            <a href="/" class="nav-logo">⚡ EventHub</a>
-            <div class="nav-links"><a href="/login.html">Login</a></div>
-        </div>
-    </nav>
-
-    <div class="auth-wrap">
-        <div class="auth-card">
-            <h2>Create Account</h2>
-            <p class="subtitle">Join EventHub to register for events from all college clubs.</p>
-
-            <!-- Role tabs -->
-            <div class="tabs mb-3" id="role-tabs">
-                <button class="tab-btn active" data-role="student" onclick="selectRole('student', this)">🎓
-                    Student</button>
-                <button class="tab-btn" data-role="admin" onclick="selectRole('admin', this)">⚙️ Club Admin</button>
-            </div>
-            <input type="hidden" id="role" value="student" />
-
-            <form id="reg-form" class="auth-stack">
-                <div class="form-group">
-                    <label for="full_name">Full Name</label>
-                    <input class="form-control" id="full_name" type="text" placeholder="Jane Doe" required />
-                </div>
-                <div class="form-group">
-                    <label for="email">Email address</label>
-                    <input class="form-control" id="email" type="email" placeholder="you@college.edu" required />
-                </div>
-                <div class="form-group">
-                    <label for="password">Password <span class="text-muted">(min 6 chars)</span></label>
-                    <input class="form-control" id="password" type="password" placeholder="••••••••" required
-                        minlength="6" />
-                </div>
-                <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Create Account</button>
-            </form>
-
-            <p class="text-muted mt-3" style="text-align:center">
-                Already have an account? <a href="/login.html" style="color:var(--accent-2)">Sign in</a>
-            </p>
-        </div>
-    </div>
-
-    <div id="toast-container"></div>
-    <script type="module">
-        import { authAPI, setAuth, isLoggedIn, isAdmin } from '/js/api.js';
-        import { toast } from '/js/ui.js';
-
-        if (isLoggedIn()) {
-            window.location.href = isAdmin() ? '/admin-dashboard.html' : '/student-dashboard.html';
-        }
-
-        window.selectRole = function (role, btn) {
-            document.getElementById('role').value = role;
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        };
-
-        document.getElementById('reg-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Creating account…';
-            try {
-                const { access_token, user } = await authAPI.register({
-                    full_name: document.getElementById('full_name').value.trim(),
-                    email: document.getElementById('email').value.trim(),
-                    password: document.getElementById('password').value,
-                    role: document.getElementById('role').value,
-                });
-                setAuth(access_token, user);
-                toast('Account created! Redirecting…', 'success');
-                setTimeout(() => {
-                    window.location.href = user.role === 'admin' ? '/admin-dashboard.html' : '/student-dashboard.html';
-                }, 600);
-            } catch (err) {
-                toast(err.message, 'error');
-                btn.disabled = false;
-                btn.textContent = 'Create Account';
-            }
-        });
+    <script>
+        // Auth is handled via modals on the homepage
+        window.location.href = '/';
     </script>
 </body>
 

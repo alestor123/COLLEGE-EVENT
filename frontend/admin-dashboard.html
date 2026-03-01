@@ -22,15 +22,29 @@
                 <h2>Admin Dashboard</h2>
                 <p class="text-muted" id="welcome-msg"></p>
             </div>
-            <div class="flex gap-1">
-                <a href="/create-event.html" class="btn btn-primary">+ New Event</a>
+            <a href="/create-event.html" class="btn btn-primary">+ New Event</a>
+        </div>
+
+        <!-- Stats -->
+        <div class="stat-row" id="stats-row">
+            <div class="card stat-card">
+                <div class="stat-num" id="stat-events">0</div>
+                <div class="stat-lbl">My Events</div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-num" id="stat-clubs">0</div>
+                <div class="stat-lbl">My Clubs</div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-num" id="stat-regs">0</div>
+                <div class="stat-lbl">Total Registrations</div>
             </div>
         </div>
 
         <!-- Tabs -->
         <div class="tabs mb-3" style="max-width:400px">
             <button class="tab-btn active" id="tab-events" onclick="switchTab('events')">My Events</button>
-            <button class="tab-btn" id="tab-clubs" onclick="switchTab('clubs')">My Club</button>
+            <button class="tab-btn" id="tab-clubs" onclick="switchTab('clubs')">My Clubs</button>
         </div>
 
         <div id="main-content"></div>
@@ -41,7 +55,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h3>Create Club</h3>
-                <button class="modal-close" onclick="closeClubModal()">×</button>
+                <button class="modal-close" onclick="closeModal('club-modal')">×</button>
             </div>
             <div class="modal-stack">
                 <div class="form-group">
@@ -62,7 +76,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h3 id="reg-modal-title">Registrations</h3>
-                <button class="modal-close" onclick="closeRegModal()">×</button>
+                <button class="modal-close" onclick="closeModal('reg-modal')">×</button>
             </div>
             <div id="reg-modal-body" class="table-wrap"></div>
         </div>
@@ -74,8 +88,8 @@
         import { updateNav, formatDate, seatChip, toast } from '/js/ui.js';
 
         updateNav();
-        if (!isLoggedIn()) { window.location.href = '/login.html'; }
-        if (!isAdmin()) { window.location.href = '/student-dashboard.html'; }
+        if (!isLoggedIn()) { window.location.href = '/'; }
+        if (!isAdmin()) { window.location.href = '/events.html'; }
 
         const user = getUser();
         document.getElementById('welcome-msg').textContent = `Hello, ${user?.full_name || 'Admin'} ⚙️`;
@@ -84,19 +98,21 @@
         let myClubs = [];
         let myEvents = [];
 
-        // Expose to global for onclick handlers
-        window._eventsAPI = eventsAPI;
-        window._clubsAPI = clubsAPI;
-        window._registrationsAPI = registrationsAPI;
-        window._toast = toast;
-        window._formatDate = formatDate;
-
         async function init() {
             try {
                 const [allClubs, allEvents] = await Promise.all([clubsAPI.list(), eventsAPI.list()]);
                 myClubs = allClubs.filter(c => c.admin_id === user.id);
                 const myClubIds = new Set(myClubs.map(c => c.id));
                 myEvents = allEvents.filter(e => myClubIds.has(e.club_id));
+
+                document.getElementById('stat-events').textContent = myEvents.length;
+                document.getElementById('stat-clubs').textContent = myClubs.length;
+
+                // Sum up registrations
+                let totalRegs = 0;
+                myEvents.forEach(e => totalRegs += (e.total_seats - e.available_seats));
+                document.getElementById('stat-regs').textContent = totalRegs;
+
                 renderTab();
             } catch (e) {
                 document.getElementById('main-content').innerHTML = `<div class="empty-state"><p>${e.message}</p></div>`;
@@ -117,7 +133,7 @@
         function renderEvents() {
             const el = document.getElementById('main-content');
             if (!myEvents.length) {
-                el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><h3>No events yet</h3><p>Create your first event to get started.</p><a href="/create-event.html" class="btn btn-primary mt-3">+ Create Event</a></div>`;
+                el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><h3>No events yet</h3><p>Create your first event.</p><a href="/create-event.html" class="btn btn-primary mt-2">+ Create Event</a></div>`;
                 return;
             }
             el.innerHTML = `
@@ -136,7 +152,7 @@
                     <div class="flex gap-1">
                       <button class="btn btn-secondary btn-sm" onclick="viewRegs('${ev.id}','${ev.title.replace(/'/g, '')}')">👥 Regs</button>
                       <a href="/create-event.html?id=${ev.id}" class="btn btn-secondary btn-sm">✏️ Edit</a>
-                      ${ev.is_active ? `<button class="btn btn-danger btn-sm" onclick="deactivate('${ev.id}')">✕ Deactivate</button>` : ''}
+                      ${ev.is_active ? `<button class="btn btn-danger btn-sm" onclick="deactivate('${ev.id}')">Deactivate</button>` : ''}
                     </div>
                   </td>
                 </tr>`).join('')}
@@ -152,17 +168,13 @@
                 myClubs.map(c => `
           <div class="card mb-2">
             <div class="section-header">
-              <div><h3>${c.name}</h3><p>${c.description || 'No description.'}</p></div>
+              <div><h3>${c.name}</h3><p style="font-size:0.85rem">${c.description || 'No description.'}</p></div>
               <span class="chip chip-accent">Your Club</span>
             </div>
           </div>`).join('')
                 : `<div class="empty-state"><div class="empty-icon">🏫</div><h3>No clubs yet</h3><p>Create a club to start publishing events.</p></div>`;
-            el.innerHTML = html + `<button class="btn btn-primary mt-3" onclick="openClubModal()">+ Create Club</button>`;
+            el.innerHTML = html + `<button class="btn btn-primary mt-3" onclick="openModal('club-modal')">+ Create Club</button>`;
         }
-
-        window.openClubModal = () => document.getElementById('club-modal').classList.add('open');
-        window.closeClubModal = () => document.getElementById('club-modal').classList.remove('open');
-        window.closeRegModal = () => document.getElementById('reg-modal').classList.remove('open');
 
         window.createClub = async function () {
             const name = document.getElementById('club-name').value.trim();
@@ -171,7 +183,7 @@
             try {
                 await clubsAPI.create({ name, description: desc });
                 toast('Club created! 🎉', 'success');
-                closeClubModal();
+                closeModal('club-modal');
                 await init();
                 switchTab('clubs');
             } catch (e) { toast(e.message, 'error'); }
@@ -189,7 +201,7 @@
         window.viewRegs = async function (eventId, title) {
             document.getElementById('reg-modal-title').textContent = `Registrations — ${title}`;
             document.getElementById('reg-modal-body').innerHTML = '<div style="text-align:center;padding:2rem"><div class="spinner"></div></div>';
-            document.getElementById('reg-modal').classList.add('open');
+            openModal('reg-modal');
             try {
                 const regs = await registrationsAPI.eventRegistrations(eventId);
                 if (!regs.length) {
@@ -198,7 +210,7 @@
                 }
                 document.getElementById('reg-modal-body').innerHTML = `
           <table>
-            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Registered At</th></tr></thead>
+            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Registered</th></tr></thead>
             <tbody>${regs.map((r, i) => `<tr><td class="text-muted">${i + 1}</td><td>${r.users?.full_name || '—'}</td><td class="text-muted">${r.users?.email || '—'}</td><td class="text-muted">${formatDate(r.registered_at)}</td></tr>`).join('')}</tbody>
           </table>`;
             } catch (e) {
@@ -206,7 +218,7 @@
             }
         };
 
-        // Close modals clicking outside
+        // Close modals on overlay click
         document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
 
         init();

@@ -11,12 +11,6 @@ class RegisterRequest(BaseModel):
     branch: str
     semester: int
 
-    @field_validator("email")
-    @classmethod
-    def validate_college_email(cls, v: str) -> str:
-        if not re.search(r'\.edu(\.[a-z]{2})?$', v.split('@')[1], re.IGNORECASE):
-            raise ValueError("Must use a college email address (.edu domain)")
-        return v
 
     @field_validator("password")
     @classmethod

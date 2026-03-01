@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your Events — EventHub</title>
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+
+<body>
+    <nav>
+        <div class="container nav-inner">
+            <a href="/" class="nav-logo">⚡ EventHub</a>
+            <div class="nav-links" id="nav-auth"></div>
+        </div>
+    </nav>
+
+    <div class="container page-content">
+        <header class="section-header mb-3">
+            <div>
+                <h2 id="welcome-title">My Registrations</h2>
+                <p class="text-muted" id="welcome-sub">Manage your upcoming campus events.</p>
+            </div>
+        </header>
+
+        <!-- Student Stats -->
+        <div class="stat-row">
+            <div class="card stat-card">
+                <div class="stat-num" id="stat-upcoming">0</div>
+                <div class="stat-lbl">Upcoming Events</div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-num" id="stat-total">0</div>
+                <div class="stat-lbl">Total Registered</div>
+            </div>
+        </div>
+
+        <!-- Content Tabs -->
+        <div class="tabs mb-3" style="max-width:320px">
+            <button class="tab-btn active" id="tab-upcoming" onclick="switchTab('upcoming')">Upcoming</button>
+            <button class="tab-btn" id="tab-past" onclick="switchTab('past')">Past Events</button>
+        </div>
+
+        <div id="main-content">
+            <div style="text-align:center;padding:4rem">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script type="module">
+        import { registrationsAPI, isLoggedIn, getUser } from '/js/api.js';
+        import { updateNav, formatDate, categoryChip, toast } from '/js/ui.js';
+
+        updateNav();
+        if (!isLoggedIn()) { window.location.href = '/login.html'; }
+
+        const user = getUser();
+        document.getElementById('welcome-title').textContent = `Hi, ${user?.full_name.split(' ')[0] || 'Student'}!`;
+
+        let allRegs = [];
+        let currentTab = 'upcoming';
+
+        async function init() {
+            try {
+                allRegs = await registrationsAPI.myRegistrations();
+                const now = new Date();
+
+                const upcoming = allRegs.filter(r => new Date(r.events.event_date) >= now);
+                document.getElementById('stat-upcoming').textContent = upcoming.length;
+                document.getElementById('stat-total').textContent = allRegs.length;
+
+                renderTab();
+            } catch (e) {
+                document.getElementById('main-content').innerHTML = `<div class="empty-state"><p class="text-danger">${e.message}</p></div>`;
+            }
+        }
+
+        window.switchTab = (tab) => {
+            currentTab = tab;
+            ['upcoming', 'past'].forEach(t => document.getElementById(`tab-${t}`).classList.toggle('active', t === tab));
+            renderTab();
+        };
+
+        function renderTab() {
+            const el = document.getElementById('main-content');
+            const now = new Date();
+            const filtered = currentTab === 'upcoming'
+                ? allRegs.filter(r => new Date(r.events.event_date) >= now)
+                : allRegs.filter(r => new Date(r.events.event_date) < now);
+
+            if (!filtered.length) {
+                el.innerHTML = `<div class="empty-state"><div class="empty-icon">🏖️</div><h3>No ${currentTab} events</h3><p>Why not browse our current events and find something cool?</p><a href="/" class="btn btn-primary mt-2">Explore Events</a></div>`;
+                return;
+            }
+
+            el.innerHTML = `
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Event</th><th>Category</th><th>Venue</th><th>Actions</th></tr></thead>
+              <tbody>${filtered.map(r => `
+                <tr>
+                  <td>
+                    <div style="font-weight:600">${r.events.title}</div>
+                    <div class="text-muted" style="font-size:0.75rem">${formatDate(r.events.event_date)}</div>
+                  </td>
+                  <td>${categoryChip(r.events.category)}</td>
+                  <td class="text-muted">${r.events.venue || 'TBA'}</td>
+                  <td>
+                    <div class="flex gap-1">
+                      <a href="/event-detail.html?id=${r.events.id}" class="btn btn-secondary btn-sm">View Details</a>
+                      ${currentTab === 'upcoming' ? `<button class="btn btn-danger btn-sm" onclick="cancelReg('${r.id}')">Cancel</button>` : ''}
+                    </div>
+                  </td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+        }
+
+        window.cancelReg = async (id) => {
+            if (!confirm('Are you sure you want to cancel your registration?')) return;
+            try {
+                await registrationsAPI.cancel(id);
+                toast('Registration cancelled.', 'info');
+                init();
+            } catch (err) { toast(err.message, 'error'); }
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

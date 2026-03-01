@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EventHub — Multi-Club College Event Portal</title>
+  <meta name="description" content="Discover and register for events across all college clubs in one place." />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+
+<body>
+  <!-- NAV -->
+  <nav>
+    <div class="container nav-inner">
+      <a href="/" class="nav-logo">⚡ EventHub</a>
+      <div class="nav-links" id="nav-auth"></div>
+    </div>
+  </nav>
+
+  <div class="container page-content">
+    <!-- HERO -->
+    <section class="hero">
+      <h1>Discover Events <span class="hero-gradient">Across All Clubs</span></h1>
+      <p>Browse hackathons, workshops, competitions and more — all from your campus clubs in one place. Register in
+        seconds.</p>
+      <div class="flex gap-1" style="justify-content:center;flex-wrap:wrap">
+        <a href="#events" class="btn btn-primary">Browse Events →</a>
+        <a href="/register.html" class="btn btn-secondary" id="hero-cta-reg">Join Now</a>
+      </div>
+    </section>
+
+    <!-- FILTERS -->
+    <section id="events">
+      <div class="filters-bar">
+        <div class="form-group">
+          <label>Search</label>
+          <input class="form-control" id="search" placeholder="Event name…" />
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select class="form-control" id="cat">
+            <option value="">All</option>
+            <option>Coding</option>
+            <option>Robotics</option>
+            <option>Design</option>
+            <option>Music</option>
+            <option>Sports</option>
+            <option>Cultural</option>
+            <option>Science</option>
+            <option>Business</option>
+            <option>Workshop</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Club</label>
+          <select class="form-control" id="club-filter">
+            <option value="">All Clubs</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>From date</label>
+          <input type="date" class="form-control" id="date-from" />
+        </div>
+        <div class="form-group">
+          <label>To date</label>
+          <input type="date" class="form-control" id="date-to" />
+        </div>
+        <div class="form-group" style="justify-content:flex-end">
+          <label>&nbsp;</label>
+          <label
+            style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;color:var(--text-secondary);font-size:0.85rem">
+            <input type="checkbox" id="avail-only"> Available seats only
+          </label>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="loadEvents()">🔍 Filter</button>
+        <button class="btn btn-secondary btn-sm" onclick="clearFilters()">✕ Clear</button>
+      </div>
+
+      <!-- EVENT GRID -->
+      <div class="events-grid" id="events-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-muted)">
+          <div class="spinner"></div>
+          <p style="margin-top:1rem">Loading events…</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script type="module">
+    import { eventsAPI, clubsAPI, isLoggedIn, isAdmin, getUser } from '/js/api.js';
+    import { updateNav, buildEventCard, toast } from '/js/ui.js';
+
+    updateNav();
+
+    // Hide hero CTA if already logged in
+    if (isLoggedIn()) {
+      const el = document.getElementById('hero-cta-reg');
+      if (el) el.style.display = 'none';
+    }
+
+    let registeredIds = new Set();
+    let typingTimer;
+
+    async function init() {
+      // load registered events for badge display
+      if (isLoggedIn()) {
+        try {
+          const { registrationsAPI } = await import('/js/api.js');
+          const regs = await registrationsAPI.myRegistrations();
+          regs.forEach(r => registeredIds.add(r.event_id));
+        } catch { }
+      }
+      // Load clubs for filter
+      try {
+        const clubs = await clubsAPI.list();
+        const sel = document.getElementById('club-filter');
+        clubs.forEach(c => {
+          const o = document.createElement('option');
+          o.value = c.id; o.textContent = c.name;
+          sel.appendChild(o);
+        });
+      } catch { }
+      await loadEvents();
+    }
+
+    window.loadEvents = async function () {
+      const grid = document.getElementById('events-grid');
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-muted)"><div class="spinner"></div><p style="margin-top:1rem">Loading…</p></div>`;
+      try {
+        const params = {
+          search: document.getElementById('search').value.trim() || undefined,
+          category: document.getElementById('cat').value || undefined,
+          club_id: document.getElementById('club-filter').value || undefined,
+          date_from: document.getElementById('date-from').value ? document.getElementById('date-from').value + 'T00:00:00' : undefined,
+          date_to: document.getElementById('date-to').value ? document.getElementById('date-to').value + 'T23:59:59' : undefined,
+          available_only: document.getElementById('avail-only').checked || undefined,
+        };
+        const events = await eventsAPI.list(params);
+        if (!events.length) {
+          grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><h3>No events found</h3><p>Try adjusting your filters.</p></div>`;
+          return;
+        }
+        grid.innerHTML = events.map(e => buildEventCard(e, registeredIds)).join('');
+      } catch (e) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚠️</div><h3>Failed to load events</h3><p>${e.message}</p></div>`;
+      }
+    };
+
+    window.clearFilters = function () {
+      ['search', 'date-from', 'date-to'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('cat').value = '';
+      document.getElementById('club-filter').value = '';
+      document.getElementById('avail-only').checked = false;
+      loadEvents();
+    };
+
+    // Debounce search
+    document.getElementById('search').addEventListener('input', () => {
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(loadEvents, 400);
+    });
+    ['cat', 'club-filter', 'date-from', 'date-to', 'avail-only'].forEach(id =>
+      document.getElementById(id).addEventListener('change', loadEvents));
+
+    init();
+  </script>
+</body>
+
+</html>
